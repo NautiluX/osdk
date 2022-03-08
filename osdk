@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -euo pipefail
+set -euxo pipefail
 
 VERSION=$1
 if [[ ! "$VERSION" =~ ^v ]]; then
@@ -38,9 +38,12 @@ sudo ln -s "$VERSION_BIN_FULL_PATH" /usr/local/bin/osdk/operator-sdk
 
 LINK_EXISTS="$(which operator-sdk>/dev/null;echo $?)"
 if [[ $LINK_EXISTS -ne 0 || "$(readlink -f "$(which operator-sdk)")" != "/usr/local/bin/osdk/operator-sdk" ]]; then
+  OSDK_BIN=/usr/local/bin/operator-sdk
+  if [[ "$(which operator-sdk;echo $?)" == "0" ]]; then
     OSDK_BIN="$(which operator-sdk)"
     sudo rm "$(which operator-sdk)"
-    sudo ln -s /usr/local/bin/osdk/operator-sdk "$OSDK_BIN"
+  fi
+  sudo ln -s /usr/local/bin/osdk/operator-sdk "$OSDK_BIN"
 fi
 
 echo -n "Now using "
