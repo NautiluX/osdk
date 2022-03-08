@@ -3,7 +3,7 @@
 set -euo pipefail
 
 VERSION=$1
-if [[ $VERSION =~ /^v/ ]]; then
+if [[ ! "$VERSION" =~ /^v/ ]]; then
   VERSION=v$VERSION
 fi
 
@@ -45,4 +45,4 @@ fi
 
 echo -n "Now using "
 operator-sdk version
-echo "To force reinstall, delete '$VERSION_BIN_FULL_PATH'"
+echo "To force reinstall, delete '$VERSION_BIN_FULL_PATH' and run 'osdk $VERSION' again"
