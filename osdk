@@ -1,0 +1,48 @@
+#!/bin/bash
+
+set -euo pipefail
+
+VERSION=$1
+if [[ $VERSION =~ /^v/ ]]; then
+  VERSION=v$VERSION
+fi
+
+ARCH="$(case $(uname -m) in x86_64) echo -n amd64 ;; aarch64) echo -n arm64 ;; *) echo -n "$(uname -m)" ;; esac)"
+OS=$(uname | awk '{print tolower($0)}')
+VERSION_BIN="operator-sdk_$VERSION"
+VERSION_BIN_FULL_PATH="/usr/local/bin/osdk/$VERSION_BIN"
+
+sudo mkdir -p /usr/local/bin/osdk
+if [[ ! -f "$VERSION_BIN_FULL_PATH" ]]; then
+  OPERATOR_SDK_DL_URL=https://github.com/operator-framework/operator-sdk/releases/download/$VERSION
+  sudo curl -L "${OPERATOR_SDK_DL_URL}/operator-sdk_${OS}_${ARCH}" -o "$VERSION_BIN_FULL_PATH"
+  if [[ "$(file "$VERSION_BIN_FULL_PATH" | grep executable; echo $?)" == "1" ]]; then
+        ARCH=$(uname -m)
+        if [[ "$OS" == "linux" ]]; then
+          OS="$OS-gnu"
+        fi
+        sudo curl -L "${OPERATOR_SDK_DL_URL}/operator-sdk-$VERSION-$ARCH-$OS" -o "$VERSION_BIN_FULL_PATH"
+  fi
+  if [[ "$(file "$VERSION_BIN_FULL_PATH" | grep executable; echo $?)" == "1" ]]; then
+    echo "Operator SDK version $VERSION not found, please check release page https://github.com/operator-framework/operator-sdk/releases"
+    sudo rm "$VERSION_BIN_FULL_PATH"
+    exit 1
+  fi
+  sudo chmod +x "$VERSION_BIN_FULL_PATH"
+fi
+
+if [[ -f "/usr/local/bin/osdk/operator-sdk" ]]; then
+  sudo rm /usr/local/bin/osdk/operator-sdk
+fi
+sudo ln -s "$VERSION_BIN_FULL_PATH" /usr/local/bin/osdk/operator-sdk
+
+LINK_EXISTS="$(which operator-sdk>/dev/null;echo $?)"
+if [[ $LINK_EXISTS -ne 0 || "$(readlink -f "$(which operator-sdk)")" != "/usr/local/bin/osdk/operator-sdk" ]]; then
+    OSDK_BIN="$(which operator-sdk)"
+    sudo rm "$(which operator-sdk)"
+    sudo ln -s /usr/local/bin/osdk/operator-sdk "$OSDK_BIN"
+fi
+
+echo -n "Now using "
+operator-sdk version
+echo "To force reinstall, delete '$VERSION_BIN_FULL_PATH'"
